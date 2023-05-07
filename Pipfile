@@ -24,7 +24,7 @@ pytest-regressions = "*"
 safety = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.8"
 
 [scripts]
 teset = "pytest"
