@@ -1,11 +1,11 @@
-FROM python:3.11.1 as base
+FROM python:3.9.16 as base
 
-LABEL "com.github.actions.name"="Publish to AWS SNS Topic"
-LABEL "com.github.actions.description"="Publish a JSON message to an AWS SNS Topic"
-LABEL description="Publish a JSON message to an AWS SNS Topic"
-LABEL homepage="https://github.com/d-dot-one/publish-to-sns"
+LABEL "com.github.actions.name"="Publish to AWS SQS Queue"
+LABEL "com.github.actions.description"="Publish a message to an AWS SQS Queue"
+LABEL description="Publish a message to an AWS SQS Queue"
+LABEL homepage="https://github.com/d-dot-one/publish-to-sqs-action"
 LABEL maintainer="d-dot-one"
-LABEL repository="https://github.com/d-dot-one/publish-to-sns"
+LABEL repository="https://github.com/d-dot-one/publish-to-sqs-action"
 
 # Setup env
 ENV LANG C.UTF-8
@@ -49,7 +49,7 @@ USER ${USER_NAME}
 
 LABEL version="0.1.1"
 
-COPY action/publish_to_sns.py ${HOME_DIR}
+COPY action/publish_to_sqs.py ${HOME_DIR}
 COPY action/__init__.py ${HOME_DIR}
 
 RUN echo "#!/bin/bash\npipenv run python /usr/${USER_NAME}/publish_to_sns.py" > ./entrypoint.sh && \

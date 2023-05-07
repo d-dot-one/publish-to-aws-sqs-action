@@ -1,5 +1,5 @@
-name: "Publish to AWS SNS Topic"
-description: "Publish a JSON message to an AWS SNS Topic"
+name: "Publish to an AWS SQS Queue"
+description: "Publish a JSON message to an AWS SQS queue"
 
 inputs:
   AWS_ACCESS_KEY_ID:
@@ -9,14 +9,14 @@ inputs:
     description: "The secret access key for the AWS IAM user (40 characters)"
     required: true
   AWS_REGION:
-    description: "The AWS region where the SNS topic exists"
+    description: "The AWS region where the SQS queue exists"
     required: true
     default: "us-east-1"
   MESSAGE:
-    description: "The JSON-formatted message you would like to publish to SNS"
+    description: "The message you would like to publish to SQS"
     required: true
   AWS_SNS_TOPIC_ARN:
-    description: "The ARN of the SNS Topic to publish to"
+    description: "The URL of the SQS queue to publish to"
     required: true
 
 runs:

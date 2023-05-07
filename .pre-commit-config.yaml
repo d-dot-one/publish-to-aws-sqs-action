@@ -99,9 +99,9 @@ repos:
          - --max-line-length=120
          - --max-module-lines=1200
          - --indent-string='    '
-         - --string-quote=single
-         - --triple-quote=single
-         - --docstring-quote=double
+#         - --string-quote=single
+#         - --triple-quote=single
+#         - --docstring-quote=double
          # similarities
          - --min-similarity-lines=7
          - --ignore-comments=yes

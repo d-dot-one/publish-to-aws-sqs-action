@@ -4,8 +4,27 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+boto3 = "*"
+botocore = "*"
 
 [dev-packages]
+ipython = "*"
+pytest = "*"
+pre-commit = "*"
+pylint = "*"
+mypy = "*"
+coverage = "*"
+coverage-badge = "*"
+flake8 = "*"
+flake8-html = "*"
+pylint-quotes = "*"
+pytest-benchmark = "*"
+pytest-html = "*"
+pytest-regressions = "*"
+safety = "*"
 
 [requires]
 python_version = "3.9"
+
+[scripts]
+teset = "pytest"

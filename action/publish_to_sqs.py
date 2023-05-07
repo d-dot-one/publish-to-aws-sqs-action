@@ -47,16 +47,10 @@ class SqsConnection:
 
         squ = sqs_queue_url or os.environ.get('AWS_SQS_QUEUE_URL')
         self.sqs_queue_url: str = self._verify_and_set_sqs_queue_url(
-            topic_arn=squ,
+            queue_url=squ,
         )
 
-        cid = os.environ.get('COMMIT_ID')
-        if cid:
-            self.commit_id: str = self._verify_and_set_github_commit_id(
-                commit_id=cid
-            )
-
-        self.client = self._create_sns_client()
+        self.client = self._create_sqs_client()
 
     def _verify_and_set_access_key_id(self, access_key_id: str = '') -> str:
         """
@@ -152,55 +146,30 @@ class SqsConnection:
 
         return region
 
-    def _verify_and_set_sns_topic_arn(self, topic_arn: str) -> str:
+    def _verify_and_set_sqs_queue_url(self, queue_url: str) -> str:
         """
         Verify that the AWS SNS topic ARN appears valid.
 
-        :param str topic_arn: The AWS SNS topic Amazon Resource Name (ARN)
-        :returns str topic_arn: The verified AWS SNS topic Amazon Resource Name (ARN)
+        :param str queue_url: The AWS SQS queue URL
+        :returns str queue_url: The verified AWS SQS queue URL
         """
-        if not (topic_arn and isinstance(topic_arn, str)):
+        if not (queue_url and isinstance(queue_url, str)):
             logger.warning(
-                f'Malformed SNS topic ARN. Expected a string, got '
-                f'{type(topic_arn)} -- {str(topic_arn)}')
-            self._topic_arn = ''
+                f'Malformed SQS queue URL. Expected a string, got '
+                f'{type(queue_url)} -- {str(queue_url)}')
+            self._queue_url = ''
             raise TypeError
 
-        result = re.match(self.TOPIC_REGEX, topic_arn)
+        result = re.match(self.SQS_QUEUE_URL_REGEX, queue_url)
 
         if not result:
-            message = f'The provided SNS Topic ARN does not appear to be ' \
+            message = f'The provided SQS queue URL does not appear to be ' \
                       f'valid for access key ID ' \
-                      f'({self.obfuscated_access_key_id}): {str(topic_arn)}'
+                      f'({self.obfuscated_access_key_id}): {str(queue_url)}'
             logger.warning(message)
             raise ValueError(message)
 
-        return topic_arn
-
-    def _verify_and_set_github_commit_id(self, commit_id: str) -> str:
-        """
-        Verify that the GitHub commit ID appears valid.
-
-        :param str commit_id: The GitHub commit ID, passed by GitHub as an environment
-                       variable
-        :returns str commit_id: The verified GitHub commit ID
-        """
-        if not (commit_id and isinstance(commit_id, str)):
-            logger.warning(
-                f'Malformed GitHub commit ID. Expected a string, got '
-                f'{type(commit_id)}')
-            self.commit_id = ''
-            raise TypeError
-
-        result = re.match(self.COMMIT_ID_REGEX, commit_id)
-
-        if not result:
-            message = f'The provided GitHub commit ID does not appear to be ' \
-                      f'valid: {str(commit_id)}'
-            logger.warning(message)
-            raise ValueError(message)
-
-        return commit_id
+        return queue_url
 
     @staticmethod
     def _obfuscate_key(key: str) -> Optional[str]:
@@ -227,30 +196,30 @@ class SqsConnection:
 
         return obfuscated_key
 
-    def _create_sns_client(self) -> BaseClient:
+    def _create_sqs_client(self) -> BaseClient:
         """
-        Create a simple AWS SNS client. This client can be used with any of the
-        AWS SNS endpoints by referencing the client (i.e. `self.client.publish()`)
+        Create a simple AWS SQS client. This client can be used with any of the
+        AWS SQS endpoints by referencing the client (i.e.
+        `self.client.send_message()`)
         """
-        sns_client: BaseClient = boto3.client(
-            'sns',
+        sqs_client: BaseClient = boto3.client(
+            'sqs',
             aws_access_key_id=self._access_key_id,
             aws_secret_access_key=self.__secret_access_key,
             region_name=self.region,
         )
-        if not (sns_client and isinstance(sns_client, BaseClient)):
+        if not (sqs_client and isinstance(sqs_client, BaseClient)):
             raise ClientError
 
-        return sns_client
+        return sqs_client
 
-    def publish_sns_message(self, dict_data: dict, sns_topic_arn: str) -> Dict[str, Any]:
+    def send_message(self, dict_data: dict) -> Dict[str, Any]:
         """
         Publish a message to an SNS topic after verifying that it is not too
         large.
 
         :param dict dict_data: A Python dictionary object containing the message
                                to send to AWS SNS
-        :param str sns_topic_arn: The ARN of the target AWS SNS topic
         :return publish_response: A Python dictionary containing the response
                                   from the AWS SNS endpoint
         """
@@ -258,7 +227,7 @@ class SqsConnection:
 
         if not (dict_data and isinstance(dict_data, dict)):
             logger.warning(
-                f'Malformed data to publish to SNS. Expected a dictionary, got '
+                f'Malformed data to publish to SQS. Expected a dictionary, got '
                 f'{type(dict_data)}')
             raise TypeError
 
@@ -278,21 +247,22 @@ class SqsConnection:
             raise ValueError(message)
 
         try:
-            publish_response = self.client.publish(
-                Message=message,
-                TopicArn=sns_topic_arn,
-                Subject='Terraform Cloud state fetch',
+
+            response = self.client.send_message(
+                QueueUrl=self.sqs_queue_url,
+                MessageBody=message
             )
             if not (publish_response or isinstance(publish_response, dict)):
                 raise Exception(
-                    f'Malformed response from SNS Publish. Expected a dictionary, '
-                    f'got {type(publish_response)} -- {str(publish_response)}')
+                    f'Malformed response from SQS send message. Expected a '
+                    f'dictionary, got {type(publish_response)} -- '
+                    f'{str(publish_response)}')
 
         except ClientError as err:
             err_msg = err.response.get('Error', {}).get('Code', {})
             if err_msg == 'InvalidParameterValue':
                 logger.exception(
-                    f'Unable to publish SNS message: {str(err_msg)}')
+                    f'Unable to publish SQS message: {str(err_msg)}')
                 raise Exception(err) from err
         except Exception as err:
             raise Exception(err) from err
@@ -302,7 +272,7 @@ class SqsConnection:
 
 def main():
     """ run the action """
-    sns_connection = SnsConnection()
+    sqs_connection = SqsConnection()
 
     message = os.environ.get('MESSAGE', '')
 
@@ -316,23 +286,17 @@ def main():
 
     message = {
         'message': json_message,
-        'commit_id': os.environ.get('COMMIT_ID'),
     }
 
-    response = sns_connection.publish_sns_message(
+    response = sqs_connection.send_message(
         dict_data=message,
-        sns_topic_arn=sns_connection.sns_topic_arn
-    )
-
-    response = sqs.send_message(
-        QueueUrl=sqs_connection.sqs_queue_url,
-        MessageBody=message
     )
 
     return {
         'statusCode': 200,
         'body': 'Message sent to SQS queue!'
     }
+
 
 if __name__ == '__main__':
     main()
