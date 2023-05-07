@@ -1,0 +1,28 @@
+name: "Publish to AWS SNS Topic"
+description: "Publish a JSON message to an AWS SNS Topic"
+
+inputs:
+  AWS_ACCESS_KEY_ID:
+    description: "The access key ID for the AWS IAM user (16-128 characters)"
+    required: true
+  AWS_SECRET_ACCESS_KEY:
+    description: "The secret access key for the AWS IAM user (40 characters)"
+    required: true
+  AWS_REGION:
+    description: "The AWS region where the SNS topic exists"
+    required: true
+    default: "us-east-1"
+  MESSAGE:
+    description: "The JSON-formatted message you would like to publish to SNS"
+    required: true
+  AWS_SNS_TOPIC_ARN:
+    description: "The ARN of the SNS Topic to publish to"
+    required: true
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+
+branding:
+  icon: 'check-circle'
+  color: 'orange'
