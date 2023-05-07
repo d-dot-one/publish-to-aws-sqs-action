@@ -133,6 +133,7 @@ dmypy.json
 
 # ide
 .idea/
+.idea/**
 
 # tests and whatnot
 .benchmarks/
