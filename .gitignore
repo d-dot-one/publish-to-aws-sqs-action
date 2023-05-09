@@ -140,3 +140,7 @@ dmypy.json
 tests/badges/
 tests/sns-event.json
 .pytest_cache
+
+# aws sam stuff
+.run/**
+.aws-sam/**

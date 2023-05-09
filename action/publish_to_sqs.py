@@ -250,7 +250,7 @@ class SqsConnection:
 
             response = self.client.send_message(
                 QueueUrl=self.sqs_queue_url,
-                MessageBody=message
+                MessageBody=message,
             )
             if not (publish_response or isinstance(publish_response, dict)):
                 raise Exception(
